@@ -8,13 +8,15 @@ Run with
 or
 
 ```
-python leafArea.py <Inputfile>
+	python leafArea.py <Inputfile>
 ```
 
 Additional flags:
 
--F force 		overwrite existing files
+-F 				force overwrite existing files
+
 -black 			black background
+
 -sum			produce summary only
 
 
