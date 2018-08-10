@@ -1,0 +1,27 @@
+$Id: //modules/pilfonts/README#1 $
+
+a collection of Courier and Helvetica bitmap fonts for the Python
+Imaging Library (PIL), derived from 100dpi fonts shipped with the
+X Window system.  See below for copyrights on individual fonts.
+
+example:
+
+        import Image, ImageDraw, ImageFont
+
+        im = Image.new("RGB", (200, 200), "white")
+        draw = ImageDraw.Draw(im)
+
+        font = ImageFont.load("helvR14.pil")
+
+        draw.text((10, 10), "hello", font=font, fill="red")
+
+        im.show()
+
+--------------------------------------------------------------------
+Helvetica
+
+helvR14.pil: -Adobe-Helvetica-Medium-R-Normal--20-140-100-100-P-100-ISO8859-1
+
+Copyright (c) 1987 Adobe Systems, Inc., Portions Copyright 1988
+Digital Equipment Corp.
+
