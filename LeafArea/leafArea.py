@@ -244,7 +244,7 @@ def Extract_LeafArea(filename,output_path,black=False):
 			leaf_area.append(area)
 			lR=R[bgl==i]
 			lG=G[bgl==i]
-			lB=[bgl==i]
+			lB=B[bgl==i]
 			fout_ind.write("%s;%i;%f;%f;%f;%f;%f;%f;%f\n" %(os.path.split(filename)[-1],i,area,np.mean(lR),np.mean(lG),np.mean(lB),np.std(lR),np.std(lG),np.std(lB)))
 			leaf_colors.append([int(np.mean(lR)),int(np.mean(lG)),int(np.mean(lB))])
 	else:
