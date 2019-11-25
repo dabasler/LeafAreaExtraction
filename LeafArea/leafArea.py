@@ -212,11 +212,11 @@ def Extract_LeafArea(filename,output_path,black=False):
 	for i in np.unique(bg_labeled[:,bg_labeled.shape[1]-1]): # RIGHT
 		if np.mean(G[bg_labeled==i])<(np.mean(B[bg_labeled==i])*1.2): # Delete object, but make an exception for very green objects (leafs)
 			bg_labeled[bg_labeled==i]=0
-		#print i
-		#print len(np.where(bg_labeled==i)[0])
-		#print np.mean(G[bg_labeled==i])
-		#print np.mean(B[bg_labeled==i])
-		#print "**"
+		#print (i)
+		#print (len(np.where(bg_labeled==i)[0]))
+		#print (np.mean(G[bg_labeled==i]))
+		#print (np.mean(B[bg_labeled==i]))
+		#print )"**")
 		#if np.mean(G[bg_labeled==i])<(np.mean(B[bg_labeled==i])*1.2): # Delete object, but make an exception for very green objects (leafs)
 			#bg_labeled[np.logical_and(G[bg_labeled==i]<(B[bg_labeled==i]*1.2),bg_labeled[bg_labeled==i])]=0
 			
@@ -238,7 +238,7 @@ def Extract_LeafArea(filename,output_path,black=False):
 	if n_objects>1:
 		#Individual output
 		for i in np.unique(bgl)[1:]:
-			print "\tLeaf %i" %i
+			print ("\tLeaf %i" %i)
 			n=len(np.where(bgl==i)[0])
 			area=((2.54*2.54)/(dpi*dpi))*n
 			leaf_area.append(area)
@@ -270,7 +270,7 @@ def Extract_LeafArea(filename,output_path,black=False):
 	n_objects = len(np.unique(bgl))-1
 	lR=R[bgl>0]
 	lG=G[bgl>0]
-	lB=[bgl>0]
+	lB=B[bgl>0]
 	
 	total_area=((2.54*2.54)/(dpi*dpi))*n_pixel
 	mean_area=np.mean(leaf_area)
@@ -331,7 +331,7 @@ def Extract_LeafArea(filename,output_path,black=False):
 	#normalize(bgl)
 	img=Image.merge("RGB",(Image.fromarray(R),Image.fromarray(G),Image.fromarray(B)))
 	s= img.size
-	img = img.resize((s[0]/4, s[1]/4), Image.ANTIALIAS)
+	img = img.resize((int(s[0]/4), int(s[1]/4)), Image.ANTIALIAS)
 	draw = ImageDraw.Draw(img)
 	font = ImageFont.load("pilfonts/helvR14.pil")
 	draw.text((10, 0),os.path.splitext(os.path.split(filename)[-1])[0],(0,0,255),font=font)
@@ -369,7 +369,7 @@ def create_summary(filelist,output_path,outfilename,header):
 	fout.close()
 
 def summarize(output_path):
-	print "Writing result summary"
+	print ("Writing result summary")
 	# Output Individual
 	#ind_files = [os.path.join(output_path, f) for f in os.listdir(output_path) if f[-7:] == 'ILA.csv' ]
 	ind_files = [os.path.join(dp, f) for dp, dn, filenames in os.walk(output_path) for f in filenames if f[-7:] == 'ILA.csv']
@@ -386,10 +386,10 @@ def summarize(output_path):
 #################################################################################33
 # INITIALIZE AND SETUP
 
-print "\n*** EXTRACT LEAF AREA ***\n"
+print ("\n*** EXTRACT LEAF AREA ***\n")
 
 if len(sys.argv) < 2:
-	print ("format: leafArea.py <Inputpath> or leafArea.py <Inputfile>")
+	print ("format: %s <Inputpath> or %s <Inputfile>" % (sys.argv[0],sys.argv[0]))
 	print ("flags:\n\t-F\t force overwrite existing files\n\t-black\t black background\n\t-sum\tproduce summary only\n")
 	exit(1)
 
@@ -427,13 +427,13 @@ if not os.path.exists(os.path.join(path,"output")):
 
 if "-sum" in sys.argv:
 	summarize(output_path)
-	print "Done!"
+	print ("Done!")
 	sys.exit(0)
 	
 
 if "-csum" in sys.argv:
 	summarize(path)
-	print "Done!"
+	print ("Done!")
 	sys.exit(0)
 	
 ###########################################
@@ -444,15 +444,15 @@ nfiles=len(filename)
 for i in range(nfiles):
 	fn=filename[i]
 	if overwrite==True:
-		print "processing %i/%i: %s" % (i+1,nfiles,fn)
+		print ("processing %i/%i: %s" % (i+1,nfiles,fn))
 		Extract_LeafArea(fn,output_path,black)
 	else:
 		if not os.path.exists(os.path.join(output_path,os.path.splitext(os.path.split(fn)[-1])[0]+"_LA.jpg")):
-			print "processing %i/%i: %s" % (i+1,nfiles,fn)
+			print ("processing %i/%i: %s" % (i+1,nfiles,fn))
 			Extract_LeafArea(fn,output_path,black)
 		else:
-			print "skipping %i/%i: %s \tFILE ALREADY EXISTS" % (i+1,nfiles,fn)
+			print ("skipping %i/%i: %s \tFILE ALREADY EXISTS" % (i+1,nfiles,fn))
 	
 summarize(output_path)
 
-print "Done!"
+print ("Done!")
