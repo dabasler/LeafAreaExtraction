@@ -2,7 +2,7 @@
 
 """
 # This scripts extracts leaf area of scanned leaves
-Created in June 2017
+Created in June 2017, updated 2020
 @author: DB
 """
 
@@ -11,7 +11,7 @@ Created in June 2017
 # Libraries 
 import os,sys
 import numpy as np
-from PIL import Image, ImageFont, ImageDraw 
+from PIL import Image, ImageFont, ImageDraw, ImageOps  
 #from scipy.ndimage import gaussian_filter
 from scipy import ndimage
 
@@ -21,7 +21,7 @@ from scipy import ndimage
 def getRGB(imagename):
 	img = Image.open(imagename)
 	try:
-		dpi = img.info["dpi"][1]
+		dpi = int(img.info["dpi"][1])
 	except:
 		dpi=99
 	img.load()
@@ -29,10 +29,13 @@ def getRGB(imagename):
 	R = np.asarray(imgR)
 	G = np.asarray(imgG)
 	B = np.asarray(imgB)
-	R.flags.writeable = True
-	G.flags.writeable = True
-	B.flags.writeable = True
-	return R,G,B,dpi
+	R1=np.copy(R)
+	G1=np.copy(G)
+	B1=np.copy(B)
+	R1.flags.writeable = True
+	G1.flags.writeable = True
+	B1.flags.writeable = True
+	return R1,G1,B1,dpi
 
 def normalize(a):
 	a=a*1.0
@@ -177,15 +180,15 @@ def threshold_yen(image, nbins=256):
     return bin_centers[crit.argmax()]
 
 ################################## MAIN FUNCTION ###############################################33
-def Extract_LeafArea(filename,output_path,black=False):
+def Extract_LeafArea(filename,output_path,black=False,ref=False,invert=False):
 	MIN_SIZE=1000
 	R,G,B,dpi=getRGB(filename)
 	bG=G.copy()
 	tv=otsu_threshold(G, bins=256)
 	bG[G>tv]=0
 	bG[G<=tv]=1
-	
-	bG[:,0:350]=0 # Remove Reference stripe
+	if (ref):
+		bG[:,0:350]=0 # Remove Reference stripe
 	
 	s = [[1,1,1],[1,1,1],[1,1,1]]
 	bg_labeled,nlabels=ndimage.measurements.label(bG,s)
@@ -252,17 +255,19 @@ def Extract_LeafArea(filename,output_path,black=False):
 			
 	fout_ind.close()
 	###
-	# ReferenceList
-	# Reference strip 200x200
-	sref=200
-	RefStrip=[(61,130),(61,525),(61,976),(61,1397),(61,1773),(61,2218),(61,2643)]
-	RefValues=np.zeros(21).reshape(7,3)
-	for i in range(0,7):
-		p = RefStrip[i]
-		RefValues[i,:]=(np.median(R[p[1]:p[1]+sref,p[0]:p[0]+sref]),np.median(G[p[1]:p[1]+sref,p[0]:p[0]+sref]),np.median(B[p[1]:p[1]+sref,p[0]:p[0]+sref]))
+	RefString = "NA;NA;NA"
+	if (ref):
+		# ReferenceList
+		# Reference strip 200x200
+		sref=200
+		RefStrip=[(61,130),(61,525),(61,976),(61,1397),(61,1773),(61,2218),(61,2643)]
+		RefValues=np.zeros(21).reshape(7,3)
+		for i in range(0,7):
+			p = RefStrip[i]
+			RefValues[i,:]=(np.median(R[p[1]:p[1]+sref,p[0]:p[0]+sref]),np.median(G[p[1]:p[1]+sref,p[0]:p[0]+sref]),np.median(B[p[1]:p[1]+sref,p[0]:p[0]+sref]))
 
-	RefMean=np.mean(RefValues, axis=0)
-	RefString = "%f;%f;%f" % (RefMean[0],RefMean[1],RefMean[2])
+		RefMean=np.mean(RefValues, axis=0)
+		RefString = "%f;%f;%f" % (RefMean[0],RefMean[1],RefMean[2])
 
 	# LEAF PARAMETERS
 	n_pixel = len(np.where(bgl>0)[0])
@@ -306,26 +311,27 @@ def Extract_LeafArea(filename,output_path,black=False):
 		G[cy1:cy2,cx:(cx+cs)]=leaf_colors[i][1]
 		B[cy1:cy2,cx:(cx+cs)]=leaf_colors[i][2]
 	cx=40
-	R[3000:3100,cx:(cx+cs)]=RefValues[0,0]
-	G[3000:3100,cx:(cx+cs)]=RefValues[0,1]
-	B[3000:3100,cx:(cx+cs)]=RefValues[0,2]
-	R[3000:3100,(cx+cs):(cx+2*cs)]=RefValues[1,0]
-	G[3000:3100,(cx+cs):(cx+2*cs)]=RefValues[1,1]
-	B[3000:3100,(cx+cs):(cx+2*cs)]=RefValues[1,2]
-	R[3000:3100,(cx+2*cs):(cx+3*cs)]=RefValues[2,0]
-	G[3000:3100,(cx+2*cs):(cx+3*cs)]=RefValues[2,1]
-	B[3000:3100,(cx+2*cs):(cx+3*cs)]=RefValues[2,2]
-	
-	R[3100:3200,cx:(cx+cs)]=RefValues[3,0]
-	G[3100:3200,cx:(cx+cs)]=RefValues[3,1]
-	B[3100:3200,cx:(cx+cs)]=RefValues[3,2]
-	R[3100:3200,(cx+cs):(cx+2*cs)]=RefValues[4,0]
-	G[3100:3200,(cx+cs):(cx+2*cs)]=RefValues[4,1]
-	B[3100:3200,(cx+cs):(cx+2*cs)]=RefValues[4,2]
-	R[3100:3200,(cx+2*cs):(cx+3*cs)]=RefValues[5,0]
-	G[3100:3200,(cx+2*cs):(cx+3*cs)]=RefValues[5,1]
-	B[3100:3200,(cx+2*cs):(cx+3*cs)]=RefValues[5,2]
-	
+	if (ref):
+		R[3000:3100,cx:(cx+cs)]=RefValues[0,0]
+		G[3000:3100,cx:(cx+cs)]=RefValues[0,1]
+		B[3000:3100,cx:(cx+cs)]=RefValues[0,2]
+		R[3000:3100,(cx+cs):(cx+2*cs)]=RefValues[1,0]
+		G[3000:3100,(cx+cs):(cx+2*cs)]=RefValues[1,1]
+		B[3000:3100,(cx+cs):(cx+2*cs)]=RefValues[1,2]
+		R[3000:3100,(cx+2*cs):(cx+3*cs)]=RefValues[2,0]
+		G[3000:3100,(cx+2*cs):(cx+3*cs)]=RefValues[2,1]
+		B[3000:3100,(cx+2*cs):(cx+3*cs)]=RefValues[2,2]
+		
+		R[3100:3200,cx:(cx+cs)]=RefValues[3,0]
+		G[3100:3200,cx:(cx+cs)]=RefValues[3,1]
+		B[3100:3200,cx:(cx+cs)]=RefValues[3,2]
+		R[3100:3200,(cx+cs):(cx+2*cs)]=RefValues[4,0]
+		G[3100:3200,(cx+cs):(cx+2*cs)]=RefValues[4,1]
+		B[3100:3200,(cx+cs):(cx+2*cs)]=RefValues[4,2]
+		R[3100:3200,(cx+2*cs):(cx+3*cs)]=RefValues[5,0]
+		G[3100:3200,(cx+2*cs):(cx+3*cs)]=RefValues[5,1]
+		B[3100:3200,(cx+2*cs):(cx+3*cs)]=RefValues[5,2]
+		
 	#mg=G.copy()
 	#mg[bgl>0]=240
 	#normalize(bgl)
@@ -337,7 +343,8 @@ def Extract_LeafArea(filename,output_path,black=False):
 	draw.text((10, 0),os.path.splitext(os.path.split(filename)[-1])[0],(0,0,255),font=font)
 	n_objects = len(np.unique(bgl))
 	draw.text((10,75),"average color",(255,0,0),font=font)
-	draw.text((10,725),"reference",(255,0,0),font=font)
+	if (ref):
+		draw.text((10,725),"reference",(255,0,0),font=font)
 	if n_objects>1:
 		#Number individual leafs
 		draw.text((330,20),"Mean area: %.2f +- %.2f cm^2" % (mean_area,sd_area),(0,255,0),font=font)
@@ -404,12 +411,20 @@ black=False
 if "-black" in sys.argv:
 	black=True
 
+ref=False
+if "-ref" in sys.argv:
+	ref=True
+
+invert=False
+if "-invert" in sys.argv:
+	invert=True
+
 
 if not os.path.exists(filename):
     print ("ERROR: File/path '%s' does not exist\n\nformat: extract_la.py <Inputpath> or extract_la.py <Inputfile>" % filename)
     exit(1)
 
-if os.path.splitext(filename)[1] == '.jpeg' or os.path.splitext(filename)[1] ==".jpg": # Argument is a FILE
+if os.path.splitext(filename)[1] == '.jpeg' or os.path.splitext(filename)[1] ==".jpg" or os.path.splitext(filename)[1] ==".tif": # Argument is a FILE
 	path=os.path.split(filename)[0]
 	if path=='':
 		path="."
@@ -417,7 +432,7 @@ if os.path.splitext(filename)[1] == '.jpeg' or os.path.splitext(filename)[1] =="
 	
 else: # Argument is a PATH
 	path=filename
-	filename = [os.path.join(path, f) for f in os.listdir(path) if os.path.splitext(f)[1] == '.jpg' or os.path.splitext(f)[1] == '.jpeg']
+	filename = [os.path.join(path, f) for f in os.listdir(path) if os.path.splitext(f)[1] == '.jpg' or os.path.splitext(f)[1] == '.jpeg' or os.path.splitext(f)[1] == '.tif'] 
 	outfile=""
 
 output_path=os.path.join(path,"output")
@@ -445,11 +460,11 @@ for i in range(nfiles):
 	fn=filename[i]
 	if overwrite==True:
 		print ("processing %i/%i: %s" % (i+1,nfiles,fn))
-		Extract_LeafArea(fn,output_path,black)
+		Extract_LeafArea(fn,output_path,black,ref,invert)
 	else:
 		if not os.path.exists(os.path.join(output_path,os.path.splitext(os.path.split(fn)[-1])[0]+"_LA.jpg")):
 			print ("processing %i/%i: %s" % (i+1,nfiles,fn))
-			Extract_LeafArea(fn,output_path,black)
+			Extract_LeafArea(fn,output_path,black,ref,invert)
 		else:
 			print ("skipping %i/%i: %s \tFILE ALREADY EXISTS" % (i+1,nfiles,fn))
 	
