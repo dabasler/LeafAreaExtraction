@@ -337,7 +337,7 @@ def Extract_LeafArea(filename,output_path,black=False,ref=False,invert=False):
 	#normalize(bgl)
 	img=Image.merge("RGB",(Image.fromarray(R),Image.fromarray(G),Image.fromarray(B)))
 	s= img.size
-	img = img.resize((int(s[0]/4), int(s[1]/4)), Image.ANTIALIAS)
+	img = img.resize((int(s[0]/4), int(s[1]/4)),  Image.LANCZOS)
 	draw = ImageDraw.Draw(img)
 	font = ImageFont.load("pilfonts/helvR14.pil")
 	draw.text((10, 0),os.path.splitext(os.path.split(filename)[-1])[0],(0,0,255),font=font)
