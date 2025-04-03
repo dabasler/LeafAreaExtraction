@@ -16,6 +16,7 @@ from PIL import Image, ImageFont, ImageDraw, ImageOps
 #from scipy.ndimage import gaussian_filter
 from scipy import ndimage
 
+import vi_def
 
 ### FUNCTIONS 
 
@@ -179,10 +180,45 @@ def threshold_yen(image, nbins=256):
     crit = np.log(((P1_sq[:-1] * P2_sq[1:]) ** -1) *
                   (P1[:-1] * (1.0 - P1[:-1])) ** 2)
     return bin_centers[crit.argmax()]
-	
-	
-	
 
+
+def pixstat(DN): #Statistics over pixels within ROI
+	data=(
+		np.nanmean(DN),
+		np.nanstd(DN),
+		np.nanmin(DN),
+		np.nanquantile(DN, 0.05),
+		np.nanquantile(DN, 0.10),
+		np.nanquantile(DN, 0.25),
+		np.nanquantile(DN, 0.50),
+		np.nanquantile(DN, 0.75),
+		np.nanquantile(DN, 0.90),
+		np.nanquantile(DN, 0.95),
+		np.nanmax(DN)
+		)
+	return data
+
+def pixhead(CH): #Header for statistics over pixels within ROI
+	header = (
+		'mean%s'% CH,
+		'sd%s'  % CH,
+		'min%s' % CH,
+		'q05%s' % CH,
+		'q10%s' % CH,
+		'q25%s' % CH,
+		'q50%s' % CH,
+		'q75%s' % CH,
+		'q90%s' % CH,
+		'q95%s' % CH,
+		'max%s' % CH
+		)
+	return header
+
+def getHeader():
+	header=['file','n','area_cm2']
+	for vi in vi_def.VI:
+		header.extend(pixhead(vi))
+	return ','.join(header) + '\n'
 
 ################################## MAIN FUNCTION ###############################################33
 def Extract_LeafArea(filename,output_path,black=False,ref=False,invert=False):
@@ -238,7 +274,7 @@ def Extract_LeafArea(filename,output_path,black=False,ref=False,invert=False):
 	leaf_colors=[]
 	leaf_area=[]
 	n_objects = len(np.unique(bgl))
-	
+	'''
 	# Prepare Output File
 	fout_ind=open(os.path.join(output_path,os.path.splitext(os.path.split(filename)[-1])[0]+"_ILA.csv"),'w')
 	header="file;n;area_cm2;meanR;meanG;meanB;sdR;sdG;sdB\n" 
@@ -255,11 +291,45 @@ def Extract_LeafArea(filename,output_path,black=False,ref=False,invert=False):
 			lB=B[bgl==i]
 			fout_ind.write("%s;%i;%f;%f;%f;%f;%f;%f;%f\n" %(os.path.split(filename)[-1],i,area,np.mean(lR),np.mean(lG),np.mean(lB),np.std(lR),np.std(lG),np.std(lB)))
 			leaf_colors.append([int(np.mean(lR)),int(np.mean(lG)),int(np.mean(lB))])
+
+			
 	else:
 			fout_ind.write("%s;NA;NA;NA;NA;NA;NA;NA;NA\n")
 			
 	fout_ind.close()
-	###
+	'''
+	# Prepare Output File
+	fout_ind=open(os.path.join(output_path,os.path.splitext(os.path.split(filename)[-1])[0]+"_ILA.csv"),'w')
+	header=getHeader()
+	fout_ind.write(header)
+	if n_objects>1:
+		#Individual output
+		for i in np.unique(bgl)[1:]:
+			print ("\tVI Leaf %i" %i)
+			n=len(np.where(bgl==i)[0])
+			area=((2.54*2.54)/(dpi*dpi))*n
+			leaf_area.append(area)
+			lR=R[bgl==i]
+			lG=G[bgl==i]
+			lB=B[bgl==i]#VI Calculation
+			# Set Bands for VI Forumlas defined in vi_def.py
+			vi_def.RB =  lR.astype('float64')  #cR.astype(np.uint32) # Issues with negative number overflow
+			vi_def.GB =  lG.astype('float64')
+			vi_def.BB =  lB.astype('float64')
+			ds=[os.path.split(fn)[-1],i,area]
+			for vi in vi_def.VI:
+				#print ("calculating stats for Index %s" %vi)
+				func = getattr(vi_def, vi)
+				ds.extend(pixstat(func()))				
+			# join output string
+			output=("%s,%i,%f," %(os.path.split(filename)[-1],i,area))
+			output= output + ','.join(['%s' % x for x in ds]) + '\n'
+			fout_ind.write(output)			
+			leaf_colors.append([int(np.mean(lR)),int(np.mean(lG)),int(np.mean(lB))])
+	else:
+			fout_ind.write("%s%s\n",os.path.split(filename)[-1],";NA"*len(vi_def.VI))
+	fout_ind.close()
+	
 	RefString = "NA;NA;NA"
 	if (ref):
 		# ReferenceList
